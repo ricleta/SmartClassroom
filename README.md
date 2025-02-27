@@ -1,8 +1,8 @@
-# INF1304-Trabalho1
-Projeto para INF1304 usando ContextNet para um sistema de monitorar presença de alunos em aula
+# SmartClasroom
+Projeto que usa ContextNet para um sistema de monitorar presença de alunos em aula, baseado no trabalho feito em [INF1304](https://github.com/ricleta/INF1304-Trabalho1)
 
 # Como usar
-> **🚧Aviso🚧**  
+> **🚧Aviso🚧**
 > Sugerimos usar o codespace ao invés de rodar localmente
 
 ## Subindo os containers
@@ -57,6 +57,4 @@ Projeto para INF1304 usando ContextNet para um sistema de monitorar presença de
 - ```/data/presence_table.csv``` tem os registros feitos à pedido de um usuário que escolheu a opção R
 
 # Membros
-- Bernardo Luiz Bach 1613231
-- Francisco Meirelles Fleury 2210641
 - Ricardo Bastos Leta Vieira 2110526

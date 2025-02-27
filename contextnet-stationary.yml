@@ -16,11 +16,11 @@ services:
       app.producer.linger.ms: "1"
       app.producer.acks: "all"
     volumes:
-      - /workspaces/INF1304-Trabalho1/data/users.json:/users.json
-      - /workspaces/INF1304-Trabalho1/data/turmas.json:/turmas.json
-      - /workspaces/INF1304-Trabalho1/data/groups_log.csv:/groups_log.csv
-      - /workspaces/INF1304-Trabalho1/data/attendance_log.csv:/attendance_log.csv
-      - /workspaces/INF1304-Trabalho1/data/presence_table.csv:/presence_table.csv
+      - /workspaces/SmartClassroom/data/users.json:/users.json
+      - /workspaces/SmartClassroom/data/turmas.json:/turmas.json
+      - /workspaces/SmartClassroom/data/groups_log.csv:/groups_log.csv
+      - /workspaces/SmartClassroom/data/attendance_log.csv:/attendance_log.csv
+      - /workspaces/SmartClassroom/data/presence_table.csv:/presence_table.csv
     deploy:
       resources:
         limits:
@@ -40,9 +40,9 @@ services:
       gd.one.producer.enable.idempotence: "true"
       gd.one.producer.linger.ms: "1"
     volumes:
-      - /workspaces/INF1304-Trabalho1/data/users.json:/users.json
-      - /workspaces/INF1304-Trabalho1/data/turmas.json:/turmas.json
-      - /workspaces/INF1304-Trabalho1/data/groups_log.csv:/groups_log.csv
+      - /workspaces/SmartClassroom/data/users.json:/users.json
+      - /workspaces/SmartClassroom/data/turmas.json:/turmas.json
+      - /workspaces/SmartClassroom/data/groups_log.csv:/groups_log.csv
     deploy:
       resources:
         limits:

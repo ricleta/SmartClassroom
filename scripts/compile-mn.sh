@@ -13,7 +13,7 @@ if [ $? -ne 0 ]; then
 fi
 
 # Find the my-mn.jar file in the target directory
-JAR_FILE="target/my-mn.jar"
+JAR_FILE="target/mobile-node.jar"
 
 if [ ! -f "$JAR_FILE" ]; then
     echo "JAR file not found"

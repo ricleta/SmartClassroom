@@ -1,1 +1,1 @@
-sudo docker ps -a -f "name=fleury"
+sudo docker ps -a
