@@ -20,7 +20,7 @@ services:
       - /workspaces/SmartClassroom/data/turmas.json:/turmas.json
       - /workspaces/SmartClassroom/data/groups_log.csv:/groups_log.csv
       - /workspaces/SmartClassroom/data/attendance_log.csv:/attendance_log.csv
-      - /workspaces/SmartClassroom/data/presence_table.csv:/presence_table.csv
+      - /workspaces/SmartClassroom/data/attendance_table.csv:/attendance_table.csv
     deploy:
       resources:
         limits:

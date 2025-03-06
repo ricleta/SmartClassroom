@@ -51,11 +51,11 @@ import main.java.ckafka.GroupSelection;
  *   <li>16501 -> LABGRAD</li>
  *   <li>16502 -> L420</li>
  *   <li>16503 -> L522</li>
- *   <li>16001 -> INF1304 - 3WA - PRESENT</li>
+ *   <li>16001 -> INF1304 - 3WA - ATTENDING</li>
  *   <li>16002 -> INF1304 - 3WA - ABSENT</li>
- *   <li>16003 -> INF1748 - 3WA - PRESENT</li>
+ *   <li>16003 -> INF1748 - 3WA - ATTENDING</li>
  *   <li>16004 -> INF1748 - 3WA - ABSENT</li>
- *   <li>16005 -> INF1748 - 3WB - PRESENT</li>
+ *   <li>16005 -> INF1748 - 3WB - ATTENDING</li>
  *   <li>16006 -> INF1748 - 3WB - ABSENT</li>
  * </ul>
  * 
@@ -126,11 +126,11 @@ public class MyGroupDefiner implements GroupSelection {
          * 16501 -> LABGRAD
          * 16502 -> L420
          * 16503 -> L522
-         * 16001 -> INF1304 - 3WA - PRESENT
+         * 16001 -> INF1304 - 3WA - ATTENDING
          * 16002 -> INF1304 - 3WA - ABSENT
-         * 16003 -> INF1748 - 3WA - PRESENT
+         * 16003 -> INF1748 - 3WA - ATTENDING
          * 16004 -> INF1748 - 3WA - ABSENT
-         * 16005 -> INF1748 - 3WB - PRESENT
+         * 16005 -> INF1748 - 3WB - ATTENDING
          * 16006 -> INF1748 - 3WB - ABSENT
          */
         Set<Integer> setOfGroups = new HashSet<Integer>();

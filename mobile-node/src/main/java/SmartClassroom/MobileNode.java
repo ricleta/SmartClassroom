@@ -187,6 +187,30 @@ public class MobileNode extends CKMobileNode {
         sendMessageToGateway(message);
     }
 
+    private void returnAttendanceCheck(SwapData swp) {
+        ObjectMapper objMapper = new ObjectMapper();
+        ObjectNode contextObj = objMapper.createObjectNode();
+
+        LocalDate currentDate = LocalDate.now(this.zoneId);
+        LocalTime currentHour = LocalTime.now(this.zoneId).withSecond(0).withNano(0);
+
+        contextObj.put("matricula", this.matricula);
+        contextObj.put("local", this.local);
+        contextObj.put("date", currentDate.toString());
+        contextObj.put("hour", currentHour.toString());
+
+        try {
+            SwapData ctxData = new SwapData();
+            ctxData.setContext(contextObj);
+            ctxData.setDuration(60);
+            ApplicationMessage message = createDefaultApplicationMessage();
+            message.setContentObject(ctxData);
+            sendMessageToGateway(message);
+        } catch (Exception e) {
+            logger.error("Failed to send context");
+        }
+    }
+
     private void registerClass(Scanner keyboard) {
         System.out.print("Enter subject: ");
         String subjectText = keyboard.nextLine();

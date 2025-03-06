@@ -6,3 +6,6 @@ echo "#-----------------# Compiling group-definer #-----------------#"
 
 echo "#-----------------# Compiling processing-node #-----------------#"
 ./compile-pn.sh
+
+echo "#-----------------# Compiling mobile-node #-----------------#"
+./compile-mn.sh

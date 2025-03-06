@@ -44,7 +44,7 @@ Projeto que usa ContextNet para um sistema de monitorar presença de alunos em a
 1. Se digitar T você pode trocar a localização do usuário digitando uma das abaixo
     - Localizações disponíveis:  T01, LABGRAD, L420, L522
 2. Se digitar R você inicia o registro de presença para uma turma na data que desejar
-    - O registro em si é guardado em ```/data/presence_table.csv```
+    - O registro em si é guardado em ```/data/attendance_table.csv```
     - Disciplinas disponíveis: inf1304, inf1748 
     - Turmas disponíveis: 
         - Para inf1304: 3WA
@@ -54,7 +54,7 @@ Projeto que usa ContextNet para um sistema de monitorar presença de alunos em a
 ## Logs 
 - ```/data/attendance_log.csv``` tem os registros de presença automáticos feitos a cada minuto
 - ```/data/groups_log.csv``` tem os registros dos grupos de presença ou falta obtidos para cada usuário cada minuto
-- ```/data/presence_table.csv``` tem os registros feitos à pedido de um usuário que escolheu a opção R
+- ```/data/attendance_table.csv``` tem os registros feitos à pedido de um usuário que escolheu a opção R
 
 # Membros
 - Ricardo Bastos Leta Vieira 2110526
