@@ -156,9 +156,14 @@ public class MobileNode extends CKMobileNode {
     public void newMessageReceived(NodeConnection nodeConnection, Message message) {
         try {
             SwapData swp = fromMessageToSwapData(message);
+            System.out.println("Topic: " + swp.getTopic());
             if (swp.getTopic().equals("Ping")) {
                 message.setSenderID(this.mnID);
                 sendMessageToGateway(message);
+            }
+            if (swp.getTopic().equals("StudentAttendanceCheck")) {
+                System.out.println("Attendance check received");
+                returnAttendanceCheck();
             } else {
                 String str = new String(swp.getMessage(), StandardCharsets.UTF_8);
                 logger.info("Message: " + str);
@@ -175,10 +180,17 @@ public class MobileNode extends CKMobileNode {
         System.out.print("Enter the message: ");
         String messageText = keyboard.nextLine();
 
-        this.sendMessageToPN(messageText);
+        this.sendMessageToPN(messageText, "AppModel");
     }
 
-    private void sendMessageToPN(String messageText) {
+    /**
+     * Sends message to the Processing Node
+     * @param messageText
+     * @param topic
+     * 
+     * OBS: For some reason, the message is only sent when the topic is "AppModel"
+     */
+    private void sendMessageToPN(String messageText, String topic) {
         ApplicationMessage message = createDefaultApplicationMessage();
         SwapData data = new SwapData();
         data.setMessage(messageText.getBytes(StandardCharsets.UTF_8));
@@ -187,28 +199,13 @@ public class MobileNode extends CKMobileNode {
         sendMessageToGateway(message);
     }
 
-    private void returnAttendanceCheck(SwapData swp) {
-        ObjectMapper objMapper = new ObjectMapper();
-        ObjectNode contextObj = objMapper.createObjectNode();
-
+    private void returnAttendanceCheck() {
         LocalDate currentDate = LocalDate.now(this.zoneId);
         LocalTime currentHour = LocalTime.now(this.zoneId).withSecond(0).withNano(0);
 
-        contextObj.put("matricula", this.matricula);
-        contextObj.put("local", this.local);
-        contextObj.put("date", currentDate.toString());
-        contextObj.put("hour", currentHour.toString());
-
-        try {
-            SwapData ctxData = new SwapData();
-            ctxData.setContext(contextObj);
-            ctxData.setDuration(60);
-            ApplicationMessage message = createDefaultApplicationMessage();
-            message.setContentObject(ctxData);
-            sendMessageToGateway(message);
-        } catch (Exception e) {
-            logger.error("Failed to send context");
-        }
+        String messageText = String.format("%s;%s;%s;%s", this.matricula, this.local, currentDate.toString(), currentHour.toString());
+        System.out.println("Sending attendance check reply: " + messageText);
+        this.sendMessageToPN(messageText, "StudentAttendanceCheck");
     }
 
     private void registerClass(Scanner keyboard) {
@@ -227,7 +224,7 @@ public class MobileNode extends CKMobileNode {
         String command = "Register ";
         command = command.concat(subjectText).concat(" ").concat(classText).concat(" ").concat(dateText).concat(" ").concat(thresholdText);
 
-        this.sendMessageToPN(command);
+        this.sendMessageToPN(command, "AppModel");
     }
 
     @Override

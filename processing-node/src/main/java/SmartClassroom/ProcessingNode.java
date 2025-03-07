@@ -311,24 +311,32 @@ public class ProcessingNode extends ModelApplication{
      * Send groupcast message
      * @param keyboard
      */
-    private void sendGroupcastMessage(Scanner keyboard) {
+    private void sendGroupcastMessage(String messageText, Integer group_num, String topic) {
         /**create date
          * if it's time for a class or ending a class
          * send message to the specific group
         */
         Date current_time = new Date();
     
-        System.out.print("Groupcast message. Enter the group number: ");
-        String group = keyboard.nextLine();
+        // System.out.print("Groupcast message. Enter the group number: ");
+        // String group = keyboard.nextLine();
+        String group = String.format("%d", group_num);
 
-        System.out.print("Enter the message: ");
-        String messageText = keyboard.nextLine();
+        // System.out.print("Enter the message: ");
+        // String messageText = keyboard.nextLine();
+        // String messageText = "Attendance check";
 
         System.out.println(String.format("Sending message %s to group %s.",
                                          messageText, group));
         try {
-            sendRecord(createRecord("GroupMessageTopic", group,
-                              swap.SwapDataSerialization(createSwapData(messageText))));
+            // sendRecord(createRecord("GroupMessageTopic", group, swap.SwapDataSerialization(createSwapData(messageText))));
+
+            SwapData data = createSwapData(messageText);
+            data.setMessage(messageText.getBytes());
+            data.setTopic(topic);
+
+            sendRecord(createRecord("GroupMessageTopic", group, swap.SwapDataSerialization(data)));
+
         } catch (Exception e) {
             e.printStackTrace();
             logger.error("Error SendGroupCastMessage", e);
