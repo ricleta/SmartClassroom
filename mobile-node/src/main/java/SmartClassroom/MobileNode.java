@@ -162,8 +162,9 @@ public class MobileNode extends CKMobileNode {
                 sendMessageToGateway(message);
             }
             if (swp.getTopic().equals("StudentAttendanceCheck")) {
-                System.out.println("Attendance check received");
-                returnAttendanceCheck();
+                String str = new String(swp.getMessage(), StandardCharsets.UTF_8);
+                System.out.println("Attendance check received. Message: " + str);
+                returnAttendanceCheck(str);
             } else {
                 String str = new String(swp.getMessage(), StandardCharsets.UTF_8);
                 logger.info("Message: " + str);
@@ -199,11 +200,11 @@ public class MobileNode extends CKMobileNode {
         sendMessageToGateway(message);
     }
 
-    private void returnAttendanceCheck() {
+    private void returnAttendanceCheck(String group) {
         LocalDate currentDate = LocalDate.now(this.zoneId);
         LocalTime currentHour = LocalTime.now(this.zoneId).withSecond(0).withNano(0);
 
-        String messageText = String.format("%s;%s;%s;%s", this.matricula, this.local, currentDate.toString(), currentHour.toString());
+        String messageText = String.format("LOG %s %s %s %s", currentDate.toString(), currentHour.toString(), this.matricula, group);
         System.out.println("Sending attendance check reply: " + messageText);
         this.sendMessageToPN(messageText, "StudentAttendanceCheck");
     }

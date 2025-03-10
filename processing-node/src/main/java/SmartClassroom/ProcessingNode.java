@@ -50,6 +50,7 @@ public class ProcessingNode extends ModelApplication{
 
     // Valid commands
     private static final String COMMAND_REGISTER_ATTENDANCE = "Register";
+    private static final String COMMAND_LOG_ATTENDANCE = "LOG";
 
     // The variable cannot be local because it is being used in a lambda function
     // Control of the eternal loop until it ends
@@ -82,6 +83,7 @@ public class ProcessingNode extends ModelApplication{
     public void runPN(Scanner keyboard) {
         // Map commands to corresponding functions
         this.commandMap.put(COMMAND_REGISTER_ATTENDANCE, params -> registerAttendance(params));
+        this.commandMap.put(COMMAND_LOG_ATTENDANCE, params -> writeGroupLogs(params));
 
         while(!fim) {
             this.start_scheduling();
@@ -238,7 +240,7 @@ public class ProcessingNode extends ModelApplication{
                 // Check if the group matches the specified class group
                 if (turma.group == turmaObj.group) {    
                     int duration = turma.duracao * 60; // Assume duration is in minutes
-
+                    System.out.println("PRESENTE ->  " + (threshold * duration));
                     // Check if the attendance count meets or exceeds the threshold
                     if (count >= threshold * duration) {
                     // Log as PRESENTE if attendance is sufficient
@@ -281,7 +283,7 @@ public class ProcessingNode extends ModelApplication{
             SwapData data = swap.SwapDataDeserialization((byte[]) record.value());
             String text = new String(data.getMessage(), StandardCharsets.UTF_8);
             User[] user_list = this.user_dto.getUserList();
-            System.out.println("Command received = " + text);
+            System.out.println("Message received: " + text);
             executeCommand(text);
         } catch (Exception e) {
             e.printStackTrace();
@@ -307,24 +309,12 @@ public class ProcessingNode extends ModelApplication{
     }
 
     /**
-     * UPDATE THIS
+     * UPDATE THIS JAVA DOC
      * Send groupcast message
      * @param keyboard
      */
     private void sendGroupcastMessage(String messageText, Integer group_num, String topic) {
-        /**create date
-         * if it's time for a class or ending a class
-         * send message to the specific group
-        */
-        Date current_time = new Date();
-    
-        // System.out.print("Groupcast message. Enter the group number: ");
-        // String group = keyboard.nextLine();
         String group = String.format("%d", group_num);
-
-        // System.out.print("Enter the message: ");
-        // String messageText = keyboard.nextLine();
-        // String messageText = "Attendance check";
 
         System.out.println(String.format("Sending message %s to group %s.",
                                          messageText, group));
@@ -349,10 +339,26 @@ public class ProcessingNode extends ModelApplication{
     private void checkStudentsAttendance() {
         ArrayList<Integer> groups = turma_dto.getAllAttendanceGroups();
         String topic = "StudentAttendanceCheck";
-
+        
         for (Integer group : groups) {
+            String message = String.format("%d", group);
             System.out.println(String.format("Checking attendance for group %d", group));
-            this.sendGroupcastMessage("FML", group, topic);
+            this.sendGroupcastMessage(message, group, topic);
+        }
+    }
+
+    private void writeGroupLogs(String[] params)
+    {
+        String data = params[0];
+        String hora = params[1];
+        String matricula = params[2];
+        String groupsString = params[3];
+
+        try (PrintWriter writer = new PrintWriter(new FileWriter(GROUPS_LOG_FILE_PATH, true))) 
+        {   
+            writer.println(data + "," + hora + "," + matricula + "," + groupsString);
+        } catch (IOException e) {
+            logger.error("Error writing to log file", e);
         }
     }
 

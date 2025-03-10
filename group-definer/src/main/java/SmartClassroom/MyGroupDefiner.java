@@ -63,7 +63,6 @@ import main.java.ckafka.GroupSelection;
  * <ul>
  *   <li>{@link #groupsIdentification()} - Returns a set of all group IDs managed by this class.</li>
  *   <li>{@link #getNodesGroupByContext(ObjectNode)} - Returns a set of group IDs related to the provided context information.</li>
- *   <li>{@link #logInfo(String, String, String, Set)} - Logs information about a student's group assignment.</li>
  *   <li>{@link #kafkaConsumerPrefix()} - Returns the Kafka consumer prefix.</li>
  *   <li>{@link #kafkaProducerPrefix()} - Returns the Kafka producer prefix.</li>
  * </ul>
@@ -77,8 +76,6 @@ import main.java.ckafka.GroupSelection;
  *   <li>{@link GroupDefiner} - For defining groups.</li>
  * </ul>
  * 
- * <p>Logging:</p>
- * This class uses SLF4J for logging. Log entries are written to a file specified by {@code logFilePath}.
  * 
  * @see GroupSelection
  * @see UserJson
@@ -90,8 +87,7 @@ import main.java.ckafka.GroupSelection;
 public class MyGroupDefiner implements GroupSelection {
     /** Logger */
     final Logger logger = LoggerFactory.getLogger(GroupDefiner.class);
-    private final String logFilePath = "/groups_log.csv";
-    
+        
     /** objects to help read and manipulate user */
     private UserJson user_dto = new UserJson();
     
@@ -246,7 +242,6 @@ public class MyGroupDefiner implements GroupSelection {
                 // If groups were found, add them to the set and log the information
                 if (!groups.isEmpty()) {
                     setOfGroups.addAll(groups);
-                    this.logInfo(matricula, date.toString(), hora, groups); // Log the attendance info
                 }
             } catch (Exception e) {
                 // Log any exceptions that occur while retrieving attendance groups
@@ -273,34 +268,6 @@ public class MyGroupDefiner implements GroupSelection {
         System.out.println(setOfGroups);
         return setOfGroups; // Return the set of group IDs
 }
-
-    /**
-     * Logs information about a student's group assignment.
-     *
-     * @param matricula The student's matricula (registration number).
-     * @param data The date of the log entry.
-     * @param hora The time of the log entry.
-     * @param setOfGroups A set of group IDs the student is assigned to.
-     * 
-     * This method writes a log entry to a file specified by {@code logFilePath}.
-     * The log entry includes the date, time, matricula, and a comma-separated list of group IDs.
-     * If the set of groups is empty, "None" is logged instead.
-     * 
-     * @throws IOException If an I/O error occurs while writing to the log file.
-     */
-    private void logInfo(String matricula, String data, String hora, Set<Integer> setOfGroups) 
-    {
-        try (PrintWriter writer = new PrintWriter(new FileWriter(this.logFilePath, true))) 
-        {   
-            // Convert setOfGroups to a comma-separated string
-            String groupsString = setOfGroups.isEmpty() ? "None" : setOfGroups.toString().replaceAll("[\\[\\]]", "");
-        
-            writer.println(data + "," + hora + "," + matricula + "," + groupsString);
-        } catch (IOException e) {
-            logger.error("Error writing to log file", e);
-        }
-    }
-
 
     public String kafkaConsumerPrefix() {
         return "gd.one.consumer";
