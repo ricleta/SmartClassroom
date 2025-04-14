@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.ArrayList;
 import java.util.Arrays; 
 import java.text.SimpleDateFormat;
 import java.text.ParseException;
@@ -45,17 +46,11 @@ public class ProcessingNode extends ModelApplication{
     private static final ZoneId zoneId = ZoneId.of("America/Sao_Paulo");
     private static final String GROUPS_LOG_FILE_PATH = "/groups_log.csv";
     private static final String ATTENDANCE_LOG_FILE_PATH = "/attendance_log.csv";
-    private static final String PRESENCE_TABLE_PATH = "/presence_table.csv";
-
-
-    // Valid user input options
-    private static final String OPTION_GROUPCAST = "G";
-    private static final String OPTION_UNICAST = "I";
-    private static final String OPTION_PN = "P";
-    private static final String OPTION_EXIT = "Z";
+    private static final String ATTENDANCE_TABLE_PATH = "/attendance_table.csv";
 
     // Valid commands
-    private static final String COMMAND_REGISTER_PRESENCE = "Register";
+    private static final String COMMAND_REGISTER_ATTENDANCE = "Register";
+    private static final String COMMAND_LOG_ATTENDANCE = "LOG";
 
     // The variable cannot be local because it is being used in a lambda function
     // Control of the eternal loop until it ends
@@ -86,21 +81,15 @@ public class ProcessingNode extends ModelApplication{
      * TODO
      */
     public void runPN(Scanner keyboard) {
-        Map<String, Consumer<Scanner>> optionsMap = new HashMap<>();
-        // Map options to corresponding functions
-        optionsMap.put(OPTION_GROUPCAST, this::sendGroupcastMessage);
-        optionsMap.put(OPTION_UNICAST, this::sendUnicastMessage);
-//        optionsMap.put(OPTION_PN, this::sendMessageToPN);
-        optionsMap.put(OPTION_EXIT, scanner -> fim = true);
-
         // Map commands to corresponding functions
-        this.commandMap.put(COMMAND_REGISTER_PRESENCE, params -> registerPresence(params));
-        // Timer timer = new Timer();
-        // timer.scheduleAtFixedRate(check_for_classes(), 0, 60000);
+        this.commandMap.put(COMMAND_REGISTER_ATTENDANCE, params -> registerAttendance(params));
+        this.commandMap.put(COMMAND_LOG_ATTENDANCE, params -> writeGroupLogs(params));
 
         while(!fim) {
             this.start_scheduling();
-            this.logAttendance(this.countTimeInClass());
+            // this.logAttendance(this.countTimeInClass());
+            // this.sendGroupcastMessage("FML", "69");
+            this.checkStudentsAttendance();
             
             try{
                 Thread.sleep(60000);
@@ -128,7 +117,7 @@ public class ProcessingNode extends ModelApplication{
                         Turma[] turmas = turma_dto.getTurmas();
                         for (Turma turma : turmas) 
                         {
-                            check_for_classes(turma);
+                            alertClassTime(turma);
                         }
                     }
                 }, now, 60000);
@@ -139,7 +128,7 @@ public class ProcessingNode extends ModelApplication{
         return;
     }
     
-    public void check_for_classes(Turma turma) {
+    public void alertClassTime(Turma turma) {
         LocalDate currentDate = LocalDate.now(zoneId);
         LocalTime currentTime = LocalTime.now(zoneId).withSecond(0).withNano(0);
     
@@ -194,27 +183,27 @@ public class ProcessingNode extends ModelApplication{
     }
 
     /**
-     * Registers the presence of students in a class based on the provided parameters.
+     * Registers the attendance of students in a class based on the provided parameters.
      *
      * @param params An array of strings containing the following parameters:
      *               - params[0]: The class identifier part 1.
      *               - params[1]: The class identifier part 2.
      *               - params[2]: The date of the class.
-     *               - params[3]: The threshold for presence as a float (e.g., 0.8 for 80%).
+     *               - params[3]: The threshold for attendance as a float (e.g., 0.8 for 80%).
      *
      * This method retrieves the class information using the provided identifiers,
-     * calculates the time each student spent in the class, and writes the presence
+     * calculates the time each student spent in the class, and writes the attendance
      * information to a file. A student is marked as "PRESENTE" if their attendance
      * time meets or exceeds the threshold percentage of the class duration; otherwise,
      * they are marked as "FALTA".
      *
-     * The presence information is written to a file specified by the constant
-     * PRESENCE_TABLE_PATH. Each line in the file contains the class date, class
-     * identifier, student matricula, and presence status.
+     * The attendance information is written to a file specified by the constant
+     * ATTENDANCE_TABLE_PATH. Each line in the file contains the class date, class
+     * identifier, student matricula, and attendance status.
      *
-     * @throws IOException If an I/O error occurs while writing to the presence table file.
+     * @throws IOException If an I/O error occurs while writing to the attendance table file.
      */
-    public void registerPresence(String[] params) {
+    public void registerAttendance(String[] params) {
         // Retrieve the Turma object based on the provided class identifiers
         Turma turmaObj = this.turma_dto.getTurma(String.format("%s %s", params[0], params[1]));
         
@@ -226,7 +215,7 @@ public class ProcessingNode extends ModelApplication{
         Map<String, Map<String, Map<String,Integer>>> userGroupCount = this.countTimeInClass();
         
         // Try-with-resources to automatically close the PrintWriter
-        try (PrintWriter writer = new PrintWriter(new FileWriter(PRESENCE_TABLE_PATH, true))) 
+        try (PrintWriter writer = new PrintWriter(new FileWriter(ATTENDANCE_TABLE_PATH, true))) 
         {
             // Iterate through each student ID in the userGroupCount map
             for (String matricula : userGroupCount.keySet()) 
@@ -251,7 +240,7 @@ public class ProcessingNode extends ModelApplication{
                 // Check if the group matches the specified class group
                 if (turma.group == turmaObj.group) {    
                     int duration = turma.duracao * 60; // Assume duration is in minutes
-
+                    System.out.println("PRESENTE ->  " + (threshold * duration));
                     // Check if the attendance count meets or exceeds the threshold
                     if (count >= threshold * duration) {
                     // Log as PRESENTE if attendance is sufficient
@@ -268,8 +257,8 @@ public class ProcessingNode extends ModelApplication{
             }
             }
         } catch (IOException e) {
-            // Log an error if there is an issue writing to the presence table
-            System.err.println("Error writing to presence_table: " + e.getMessage());
+            // Log an error if there is an issue writing to the attendance table
+            System.err.println("Error writing to attendance_table: " + e.getMessage());
         }
     }
 
@@ -294,7 +283,7 @@ public class ProcessingNode extends ModelApplication{
             SwapData data = swap.SwapDataDeserialization((byte[]) record.value());
             String text = new String(data.getMessage(), StandardCharsets.UTF_8);
             User[] user_list = this.user_dto.getUserList();
-            System.out.println("Command received = " + text);
+            System.out.println("Message received: " + text);
             executeCommand(text);
         } catch (Exception e) {
             e.printStackTrace();
@@ -320,30 +309,56 @@ public class ProcessingNode extends ModelApplication{
     }
 
     /**
+     * UPDATE THIS JAVA DOC
      * Send groupcast message
      * @param keyboard
      */
-    private void sendGroupcastMessage(Scanner keyboard) {
-        /**create date
-         * if it's time for a class or ending a class
-         * send message to the specific group
-        */
-        Date current_time = new Date();
-    
-        System.out.print("Groupcast message. Enter the group number: ");
-        String group = keyboard.nextLine();
-
-        System.out.print("Enter the message: ");
-        String messageText = keyboard.nextLine();
+    private void sendGroupcastMessage(String messageText, Integer group_num, String topic) {
+        String group = String.format("%d", group_num);
 
         System.out.println(String.format("Sending message %s to group %s.",
                                          messageText, group));
         try {
-            sendRecord(createRecord("GroupMessageTopic", group,
-                              swap.SwapDataSerialization(createSwapData(messageText))));
+            // sendRecord(createRecord("GroupMessageTopic", group, swap.SwapDataSerialization(createSwapData(messageText))));
+
+            SwapData data = createSwapData(messageText);
+            data.setMessage(messageText.getBytes());
+            data.setTopic(topic);
+
+            sendRecord(createRecord("GroupMessageTopic", group, swap.SwapDataSerialization(data)));
+
         } catch (Exception e) {
             e.printStackTrace();
             logger.error("Error SendGroupCastMessage", e);
+        }
+    }
+
+    /**
+     * Check students attendance
+     */
+    private void checkStudentsAttendance() {
+        ArrayList<Integer> groups = turma_dto.getAllAttendanceGroups();
+        String topic = "StudentAttendanceCheck";
+        
+        for (Integer group : groups) {
+            String message = String.format("%d", group);
+            System.out.println(String.format("Checking attendance for group %d", group));
+            this.sendGroupcastMessage(message, group, topic);
+        }
+    }
+
+    private void writeGroupLogs(String[] params)
+    {
+        String data = params[0];
+        String hora = params[1];
+        String matricula = params[2];
+        String groupsString = params[3];
+
+        try (PrintWriter writer = new PrintWriter(new FileWriter(GROUPS_LOG_FILE_PATH, true))) 
+        {   
+            writer.println(data + "," + hora + "," + matricula + "," + groupsString);
+        } catch (IOException e) {
+            logger.error("Error writing to log file", e);
         }
     }
 

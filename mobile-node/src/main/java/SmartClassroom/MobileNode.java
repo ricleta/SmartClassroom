@@ -156,9 +156,15 @@ public class MobileNode extends CKMobileNode {
     public void newMessageReceived(NodeConnection nodeConnection, Message message) {
         try {
             SwapData swp = fromMessageToSwapData(message);
+            System.out.println("Topic: " + swp.getTopic());
             if (swp.getTopic().equals("Ping")) {
                 message.setSenderID(this.mnID);
                 sendMessageToGateway(message);
+            }
+            if (swp.getTopic().equals("StudentAttendanceCheck")) {
+                String str = new String(swp.getMessage(), StandardCharsets.UTF_8);
+                System.out.println("Attendance check received. Message: " + str);
+                returnAttendanceCheck(str);
             } else {
                 String str = new String(swp.getMessage(), StandardCharsets.UTF_8);
                 logger.info("Message: " + str);
@@ -175,16 +181,32 @@ public class MobileNode extends CKMobileNode {
         System.out.print("Enter the message: ");
         String messageText = keyboard.nextLine();
 
-        this.sendMessageToPN(messageText);
+        this.sendMessageToPN(messageText, "AppModel");
     }
 
-    private void sendMessageToPN(String messageText) {
+    /**
+     * Sends message to the Processing Node
+     * @param messageText
+     * @param topic
+     * 
+     * OBS: For some reason, the message is only sent when the topic is "AppModel"
+     */
+    private void sendMessageToPN(String messageText, String topic) {
         ApplicationMessage message = createDefaultApplicationMessage();
         SwapData data = new SwapData();
         data.setMessage(messageText.getBytes(StandardCharsets.UTF_8));
         data.setTopic("AppModel");
         message.setContentObject(data);
         sendMessageToGateway(message);
+    }
+
+    private void returnAttendanceCheck(String group) {
+        LocalDate currentDate = LocalDate.now(this.zoneId);
+        LocalTime currentHour = LocalTime.now(this.zoneId).withSecond(0).withNano(0);
+
+        String messageText = String.format("LOG %s %s %s %s", currentDate.toString(), currentHour.toString(), this.matricula, group);
+        System.out.println("Sending attendance check reply: " + messageText);
+        this.sendMessageToPN(messageText, "StudentAttendanceCheck");
     }
 
     private void registerClass(Scanner keyboard) {
@@ -203,7 +225,7 @@ public class MobileNode extends CKMobileNode {
         String command = "Register ";
         command = command.concat(subjectText).concat(" ").concat(classText).concat(" ").concat(dateText).concat(" ").concat(thresholdText);
 
-        this.sendMessageToPN(command);
+        this.sendMessageToPN(command, "AppModel");
     }
 
     @Override

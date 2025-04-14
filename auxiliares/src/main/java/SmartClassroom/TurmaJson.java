@@ -5,6 +5,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Set;
 import java.util.HashSet;
+import java.util.ArrayList;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 
@@ -92,6 +93,14 @@ public class TurmaJson {
     }
 
     /**
+     * Get all classes
+     * @return array of all classes
+     */
+    public Turma[] getTurmas() {
+        return this.turma_list;
+    }
+
+    /**
      * Get the group ID from the class name
      * @param disciplina_turma class name
      * @return the group ID, or -1 if the class is not found
@@ -108,6 +117,16 @@ public class TurmaJson {
         }
 
         return -1;
+    }
+
+    public ArrayList<Integer> getAllAttendanceGroups()
+    {
+        ArrayList<Integer> groups = new ArrayList<Integer>();
+        for (Turma turma : this.turma_list) {
+            groups.add(turma.group_attending);
+            groups.add(turma.group_absent);
+        }
+        return groups;
     }
 
     /**
@@ -135,13 +154,5 @@ public class TurmaJson {
             }
         }
         return groups;
-    }
-
-    /**
-     * Get all classes
-     * @return array of all classes
-     */
-    public Turma[] getTurmas() {
-        return this.turma_list;
     }
 }
