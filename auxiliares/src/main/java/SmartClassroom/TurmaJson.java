@@ -169,12 +169,12 @@ public class TurmaJson {
         ArrayList<Integer> groups = new ArrayList<Integer>();
     
         for (Turma turma : this.turma_list) {
-            System.out.println("##################################");
-            System.out.println("Turma: " + turma.disciplina + " " + turma.id_turma);
+            // System.out.println("##################################");
+            // System.out.println("Turma: " + turma.disciplina + " " + turma.id_turma);
 
             for (SalaHorario salaHorario : turma.salas_horarios) {
-                System.out.println("Dia da semana igual: " + (salaHorario.getDayOfWeek() == date.getDayOfWeek().getValue()));
-                System.out.println("isClassTime: " + salaHorario.isClassTime(currentTime));
+                // System.out.println("Dia da semana igual: " + (salaHorario.getDayOfWeek() == date.getDayOfWeek().getValue()));
+                // System.out.println("isClassTime: " + salaHorario.isClassTime(currentTime));
                 if (salaHorario.getDayOfWeek() == date.getDayOfWeek().getValue()) {
                     if (salaHorario.isClassTime(currentTime)) {
                         groups.add(turma.group);

@@ -94,7 +94,7 @@ public class MobileNode extends CKMobileNode {
             return;
         }
 
-        // TODO get matricula from csv in the UserX folder
+        // get matriculas from csv in the UserX folder
         File file = new File("./matriculas.csv");
 
         // Main loop that continues until the 'fim' variable is true
@@ -237,7 +237,11 @@ public class MobileNode extends CKMobileNode {
         LocalTime currentHour = LocalTime.now(this.zoneId).withSecond(0).withNano(0);
 
         // String messageText = String.format("LOG %s %s %s %s", currentDate.toString(), currentHour.toString(), this.matricula, group);
-        String messageText = String.format("LOG %s %s %s", currentDate.toString(), currentHour.toString(), group);
+        String messageText = String.format("LOG %s %s %s ", currentDate.toString(), currentHour.toString(), group);
+
+        for (Integer id : this.studentIDs) {
+            messageText = messageText.concat(String.valueOf(id).concat(","));
+        }
         System.out.println("Sending attendance check reply: " + messageText);
         this.sendMessageToPN(messageText, "StudentAttendanceCheck");
     }

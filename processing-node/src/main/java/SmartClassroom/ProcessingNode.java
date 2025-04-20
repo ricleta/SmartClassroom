@@ -58,6 +58,7 @@ public class ProcessingNode extends ModelApplication{
     private TurmaJson turma_dto = new TurmaJson();
     private boolean fim = false;
     Map<String, Consumer<String[]>> commandMap = new HashMap<>();
+    private Map<String, Map<String, Map<String, Integer>>> userGroupCount = new HashMap<>();
 
     /**
      * Constructor
@@ -77,20 +78,31 @@ public class ProcessingNode extends ModelApplication{
         pn.runPN(keyboard);
     }
 
-    /**
-     * TODO
-     */
     public void runPN(Scanner keyboard) {
         // Map commands to corresponding functions
         this.commandMap.put(COMMAND_REGISTER_ATTENDANCE, params -> registerAttendance(params));
-        this.commandMap.put(COMMAND_LOG_ATTENDANCE, params -> writeGroupLogs(params));
+        // this.commandMap.put(COMMAND_LOG_ATTENDANCE, params -> writeGroupLogs(params));
+        this.commandMap.put(COMMAND_LOG_ATTENDANCE, params -> updateTimeInClass(params));
 
         while(!fim) {
             this.start_scheduling();
-            // this.logAttendance(this.countTimeInClass());
+            // this.logAttendance(this.updateTimeInClass());
             // this.sendGroupcastMessage("FML", "69");
             this.checkStudentsAttendance();
             
+            for (Map.Entry<String, Map<String, Map<String, Integer>>> entry : userGroupCount.entrySet()) {
+                String matricula = entry.getKey();
+                Map<String, Map<String, Integer>> dateMap = entry.getValue();
+                for (Map.Entry<String, Map<String, Integer>> dateEntry : dateMap.entrySet()) {
+                    String date = dateEntry.getKey();
+                    Map<String, Integer> groupCounts = dateEntry.getValue();
+                    for (Map.Entry<String, Integer> groupEntry : groupCounts.entrySet()) {
+                        String group = groupEntry.getKey();
+                        Integer count = groupEntry.getValue();
+                        System.out.println("Matricula: " + matricula + ", Date: " + date + ", Group: " + group + ", Count: " + count);
+                    }
+                }
+            }
             try{
                 Thread.sleep(60000);
             }
@@ -212,7 +224,7 @@ public class ProcessingNode extends ModelApplication{
         Float threshold = Float.parseFloat(params[3]);
         
         // Count the time each user is in different classes
-        Map<String, Map<String, Map<String,Integer>>> userGroupCount = this.countTimeInClass();
+        // Map<String, Map<String, Map<String,Integer>>> userGroupCount = this.updateTimeInClass();
         
         // Try-with-resources to automatically close the PrintWriter
         try (PrintWriter writer = new PrintWriter(new FileWriter(ATTENDANCE_TABLE_PATH, true))) 
@@ -282,7 +294,7 @@ public class ProcessingNode extends ModelApplication{
         try {
             SwapData data = swap.SwapDataDeserialization((byte[]) record.value());
             String text = new String(data.getMessage(), StandardCharsets.UTF_8);
-            User[] user_list = this.user_dto.getUserList();
+            // User[] user_list = this.user_dto.getUserList();
             System.out.println("Message received: " + text);
             executeCommand(text);
         } catch (Exception e) {
@@ -353,21 +365,21 @@ public class ProcessingNode extends ModelApplication{
         }
     }
 
-    private void writeGroupLogs(String[] params)
-    {
-        String data = params[0];
-        String hora = params[1];
-        // String [] matriculas = params[2];
-        String groupsString = params[2];
+    // private void writeGroupLogs(String[] params)
+    // {
+    //     String data = params[0];
+    //     String hora = params[1];
+    //     // String [] matriculas = params[2];
+    //     String groupsString = params[2];
 
-        try (PrintWriter writer = new PrintWriter(new FileWriter(GROUPS_LOG_FILE_PATH, true))) 
-        {
-            // writer.println(data + "," + hora + "," + matriculas + ","+ groupsString);   
-            writer.println(data + "," + hora + "," + groupsString);
-        } catch (IOException e) {
-            logger.error("Error writing to log file", e);
-        }
-    }
+    //     try (PrintWriter writer = new PrintWriter(new FileWriter(GROUPS_LOG_FILE_PATH, true))) 
+    //     {
+    //         // writer.println(data + "," + hora + "," + matriculas + ","+ groupsString);   
+    //         writer.println(data + "," + hora + "," + groupsString);
+    //     } catch (IOException e) {
+    //         logger.error("Error writing to log file", e);
+    //     }
+    // }
 
     /**
      * Counts the time each user is in different classes based on log data.
@@ -381,46 +393,36 @@ public class ProcessingNode extends ModelApplication{
      *         is the date, and the third key is the group ID. The value is the count of
      *         times the user attended that group on that date.
      */
-    public Map<String, Map<String, Map<String, Integer>>> countTimeInClass() {
-        Map<String, Map<String, Map<String, Integer>>> userGroupCount = new HashMap<>();
+    public void updateTimeInClass(String[] params) {
+        String date = params[0];
+        String hora = params[1];
+        String group = params[2];
+        String matriculasString = params[3];
 
-        try (BufferedReader reader = new BufferedReader(new FileReader(GROUPS_LOG_FILE_PATH))) {
-            String line;
+        String [] matriculas = matriculasString.split(",");
 
-            while ((line = reader.readLine()) != null) {
-                String[] parts = line.split(",");
-                String date = parts[0];
-                String hora = parts[1];
-                String matricula = parts[2];
-                String groupsString = parts[3];
-
-                // Split the group string into individual group IDs
-                String[] groups = groupsString.equals("None") ? new String[0] : groupsString.split(", ");
-
+        try {
+            for (String matricula : matriculas) {
                 // Initialize nested maps
                 userGroupCount.putIfAbsent(matricula, new HashMap<>());
                 userGroupCount.get(matricula).putIfAbsent(date, new HashMap<>());
 
-                for (String group : groups) {
-                    try {
-                        Turma turma = turma_dto.getTurma(Integer.parseInt(group));
-                        String turmaGroup = String.valueOf(turma.group);
+                try {
+                    Turma turma = turma_dto.getTurma(Integer.parseInt(group));
+                    String turmaGroup = String.valueOf(turma.group);
 
-                        userGroupCount.get(matricula).get(date).putIfAbsent(turmaGroup, 0);
+                    userGroupCount.get(matricula).get(date).putIfAbsent(turmaGroup, 0);
 
-                        // Update the userGroupCount using turma.group as the key
-                        userGroupCount.get(matricula).get(date).put(turmaGroup, 
-                            userGroupCount.get(matricula).get(date).get(turmaGroup) + 1);
-                    } catch (Exception e) {
-                        System.err.println("Error getting turma by group: " + e.getMessage());
-                    }
+                    // Update the userGroupCount using turma.group as the key
+                    userGroupCount.get(matricula).get(date).put(turmaGroup, 
+                        userGroupCount.get(matricula).get(date).get(turmaGroup) + 1);
+                } catch (Exception e) {
+                    System.err.println("Error getting turma by group: " + e.getMessage());
                 }
             }
-        } catch (IOException e) {
-            System.err.println("Error reading log file: " + e.getMessage());
+        } catch (Exception e) {
+            System.err.println("Error updating time in class count: " + e.getMessage());
         }
-
-        return userGroupCount;
     }
 
     /**
