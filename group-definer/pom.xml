@@ -48,10 +48,6 @@
         <repository>
             <id>LAC PUC-Rio</id>
             <url>https://bitbucket.org/endler/contextnet-dependencies/raw/master</url>
-        </repository>        
-        <repository>
-            <id>JMapViewer</id>
-            <url>https://josm.openstreetmap.de/nexus/content/repositories/releases/</url>
         </repository>
     </repositories>
 
@@ -95,11 +91,6 @@
             <groupId>br.pucrio.inf.lac</groupId>
             <artifactId>ExchangeData</artifactId>
             <version>1.0</version>
-        </dependency>
-        <dependency>
-            <groupId>org.openstreetmap.jmapviewer</groupId>
-            <artifactId>jmapviewer</artifactId>
-            <version>2.8</version>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>

@@ -337,7 +337,13 @@ public class ProcessingNode extends ModelApplication{
      * Check students attendance
      */
     private void checkStudentsAttendance() {
-        ArrayList<Integer> groups = turma_dto.getAllAttendanceGroups();
+        LocalDate currentDate = LocalDate.now(zoneId);
+        LocalTime currentTime = LocalTime.now(zoneId).withSecond(0).withNano(0);
+        ArrayList<Integer> groups = turma_dto.getAllCurrentClassGroups(currentDate, currentTime);
+        if (groups.isEmpty()) {
+            System.out.println("No classes at this time.");
+            return;
+        }
         String topic = "StudentAttendanceCheck";
         
         for (Integer group : groups) {
@@ -351,12 +357,13 @@ public class ProcessingNode extends ModelApplication{
     {
         String data = params[0];
         String hora = params[1];
-        String matricula = params[2];
-        String groupsString = params[3];
+        // String [] matriculas = params[2];
+        String groupsString = params[2];
 
         try (PrintWriter writer = new PrintWriter(new FileWriter(GROUPS_LOG_FILE_PATH, true))) 
-        {   
-            writer.println(data + "," + hora + "," + matricula + "," + groupsString);
+        {
+            // writer.println(data + "," + hora + "," + matriculas + ","+ groupsString);   
+            writer.println(data + "," + hora + "," + groupsString);
         } catch (IOException e) {
             logger.error("Error writing to log file", e);
         }
@@ -397,17 +404,13 @@ public class ProcessingNode extends ModelApplication{
                 for (String group : groups) {
                     try {
                         Turma turma = turma_dto.getTurma(Integer.parseInt(group));
-                        String attendingGroup = String.valueOf(turma.group_attending);
                         String turmaGroup = String.valueOf(turma.group);
 
                         userGroupCount.get(matricula).get(date).putIfAbsent(turmaGroup, 0);
 
-                        // Check if the current group corresponds to the attending group
-                        if (group.equals(attendingGroup)) {
-                            // Update the userGroupCount using turma.group as the key
-                            userGroupCount.get(matricula).get(date).put(turmaGroup, 
-                                userGroupCount.get(matricula).get(date).get(turmaGroup) + 1);
-                        }   
+                        // Update the userGroupCount using turma.group as the key
+                        userGroupCount.get(matricula).get(date).put(turmaGroup, 
+                            userGroupCount.get(matricula).get(date).get(turmaGroup) + 1);
                     } catch (Exception e) {
                         System.err.println("Error getting turma by group: " + e.getMessage());
                     }

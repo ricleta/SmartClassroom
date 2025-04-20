@@ -10,10 +10,16 @@ import java.util.Map;
 import java.util.Scanner;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.Properties;
+import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileReader;
 import java.io.IOException;
+import java.lang.reflect.Array;
+
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -36,14 +42,13 @@ public class MobileNode extends CKMobileNode {
     private static final String OPTION_PN = "P";
     private static final String OPTION_REGISTER = "R";
     private static final String OPTION_EXIT = "Z";
-    private static final String OPTION_UPDATE_LOCATION = "T";
 
     private ZoneId zoneId = ZoneId.of("America/Sao_Paulo");
 
     // The variable cannot be local because it is being used in a lambda function
     // Control the infinite loop until it ends
     private boolean fim = false;
-    private Integer matricula;
+    private ArrayList<Integer> studentIDs = new ArrayList<>();
     private String local = "INVALIDO";
 
     /**
@@ -76,20 +81,26 @@ public class MobileNode extends CKMobileNode {
         optionsMap.put(OPTION_UNICAST, this::sendUnicastMessage);
         optionsMap.put(OPTION_PN, this::enterMessageToPN);
         optionsMap.put(OPTION_GROUPCAST, this::sendGroupcastMessage);
-        optionsMap.put(OPTION_UPDATE_LOCATION, this::updateLocation);
         optionsMap.put(OPTION_EXIT, scanner -> fim = true);
         optionsMap.put(OPTION_REGISTER, this::registerClass);
 
-        // Requests the user's registration number
-        System.out.println("Qual a sua matricula?");
-        this.matricula = keyboard.nextInt();
-        keyboard.nextLine(); // consumes the \n
+        Properties properties = new Properties();
+        try {
+            properties.loadFromXML(new FileInputStream("./properties.xml"));
+            this.local = properties.getProperty("placeTag");
+            System.out.println("local = " + local);          
+        } catch (IOException e) {
+            System.out.println("Error reading properties file: " + e.getMessage());
+            return;
+        }
 
-        System.out.println("Qual o seu local?");
-        this.local = keyboard.nextLine();
+        // TODO get matricula from csv in the UserX folder
+        File file = new File("./matriculas.csv");
 
         // Main loop that continues until the 'fim' variable is true
         while (!fim) {
+            studentIDs = updateStudentIDs(file);
+
             // Requests the user's option
             System.out.print("(T) Change location | (R) Register class | (Z) to finish)? ");
             String linha = keyboard.nextLine().trim().toUpperCase();
@@ -108,6 +119,32 @@ public class MobileNode extends CKMobileNode {
         System.exit(0);
     }
 
+    private ArrayList<Integer> updateStudentIDs(File ids_file) {
+        ArrayList<Integer> ids = new ArrayList<>();           
+        // Read the file and store the matriculas in the studentIDs list
+        studentIDs.clear();
+        try (BufferedReader br = new BufferedReader(new FileReader(ids_file))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                // Assuming the matricula is the first column in the CSV
+                String[] values = line.split(",");
+                if (values.length > 0) {
+                    for (String value : values) {
+                        if (!value.trim().isEmpty()) {
+                            studentIDs.add(Integer.parseInt(value.trim()));
+                        }
+                    }
+                }
+            }
+        } 
+        catch (IOException e) {
+            System.out.println("Error reading matriculas file: " + e.getMessage());
+            return null;
+        }
+
+        return studentIDs;
+    }
+
     /**
      * When connected, send location at each instant
      */
@@ -121,11 +158,6 @@ public class MobileNode extends CKMobileNode {
         } catch (Exception e) {
             logger.error("Error scheduling SendLocationTask", e);
         }
-    }
-
-    private void updateLocation(Scanner keyboard) {
-        System.out.print("Enter the new location: ");
-        this.local = keyboard.nextLine();
     }
 
     /**
@@ -204,7 +236,8 @@ public class MobileNode extends CKMobileNode {
         LocalDate currentDate = LocalDate.now(this.zoneId);
         LocalTime currentHour = LocalTime.now(this.zoneId).withSecond(0).withNano(0);
 
-        String messageText = String.format("LOG %s %s %s %s", currentDate.toString(), currentHour.toString(), this.matricula, group);
+        // String messageText = String.format("LOG %s %s %s %s", currentDate.toString(), currentHour.toString(), this.matricula, group);
+        String messageText = String.format("LOG %s %s %s", currentDate.toString(), currentHour.toString(), group);
         System.out.println("Sending attendance check reply: " + messageText);
         this.sendMessageToPN(messageText, "StudentAttendanceCheck");
     }
@@ -278,7 +311,9 @@ public class MobileNode extends CKMobileNode {
         LocalDate currentDate = LocalDate.now(this.zoneId);
         LocalTime currentHour = LocalTime.now(this.zoneId).withSecond(0).withNano(0);
 
-        contextObj.put("matricula", this.matricula);
+        System.out.println("matriculas = " + this.studentIDs.toString());
+        contextObj.put("matricula", this.studentIDs.toString().replace("[", "").replace("]", ""));
+        // contextObj.set("matricula", objMapper.valueToTree(this.studentIDs));
         contextObj.put("local", this.local);
         contextObj.put("date", currentDate.toString());
         contextObj.put("hour", currentHour.toString()); 
