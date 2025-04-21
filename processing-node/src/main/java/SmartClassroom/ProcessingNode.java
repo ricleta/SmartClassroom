@@ -52,6 +52,9 @@ public class ProcessingNode extends ModelApplication{
     private static final String COMMAND_REGISTER_ATTENDANCE = "Register";
     private static final String COMMAND_LOG_ATTENDANCE = "LOG";
 
+    // threshold for attendance
+    private static final float THRESHOLD = 0.02f;
+
     // The variable cannot be local because it is being used in a lambda function
     // Control of the eternal loop until it ends
     private UserJson user_dto = new UserJson();
@@ -83,9 +86,13 @@ public class ProcessingNode extends ModelApplication{
         this.commandMap.put(COMMAND_REGISTER_ATTENDANCE, params -> registerAttendance(params));
         // this.commandMap.put(COMMAND_LOG_ATTENDANCE, params -> writeGroupLogs(params));
         this.commandMap.put(COMMAND_LOG_ATTENDANCE, params -> updateTimeInClass(params));
+        int n = 0;
 
+        this.periodicAlert();
+        this.periodicCheckEndedClasses();
+        
         while(!fim) {
-            this.start_scheduling();
+            System.out.println("### n = " + n++ + " ###");
             // this.logAttendance(this.updateTimeInClass());
             // this.sendGroupcastMessage("FML", "69");
             this.checkStudentsAttendance();
@@ -115,7 +122,7 @@ public class ProcessingNode extends ModelApplication{
         System.exit(0);
     }
 
-    public void start_scheduling(){
+    private void periodicAlert(){
         try {
             Date now = new Date();
             Timer timer = new Timer();
@@ -139,8 +146,40 @@ public class ProcessingNode extends ModelApplication{
         }
         return;
     }
+
+    private void periodicCheckEndedClasses() {
+        try {
+            Date now = new Date();
+            Timer timer = new Timer();
+            
+            timer.scheduleAtFixedRate(
+                new TimerTask() {
+                    @Override
+                    public void run() 
+                    {
+                        LocalDate currentDate = LocalDate.now(zoneId);
+                        LocalTime currentTime = LocalTime.now(zoneId).withSecond(0).withNano(0);
+                        ArrayList<Turma> classesJustEnded = turma_dto.getClassesJustEnded(currentDate, currentTime);
+                        if (classesJustEnded.isEmpty()) {
+                            System.out.println("No classes ended at " + now);
+                            return;
+                        }
+                        
+                        for (Turma turma : classesJustEnded) {
+                            registerAttendance(turma, currentDate.toString(), THRESHOLD);
+                        }
+                    }
+                // The run function is called every hour (3600000 milliseconds).
+                // For testing purposes, it is set to 1 minute (60000 milliseconds).
+                }, now, 60000);
+        
+            } catch (Exception e) {
+            logger.error("Error scheduling SendLocationTask", e);
+        }
+        return;
+    }
     
-    public void alertClassTime(Turma turma) {
+    private void alertClassTime(Turma turma) {
         LocalDate currentDate = LocalDate.now(zoneId);
         LocalTime currentTime = LocalTime.now(zoneId).withSecond(0).withNano(0);
     
@@ -215,7 +254,7 @@ public class ProcessingNode extends ModelApplication{
      *
      * @throws IOException If an I/O error occurs while writing to the attendance table file.
      */
-    public void registerAttendance(String[] params) {
+    private void registerAttendance(String[] params) {
         // Retrieve the Turma object based on the provided class identifiers
         Turma turmaObj = this.turma_dto.getTurma(String.format("%s %s", params[0], params[1]));
         
@@ -267,6 +306,59 @@ public class ProcessingNode extends ModelApplication{
                 System.err.println("Error getting turma by attending group: " + e.getMessage());
                 }
             }
+            }
+        } catch (IOException e) {
+            // Log an error if there is an issue writing to the attendance table
+            System.err.println("Error writing to attendance_table: " + e.getMessage());
+        }
+    }
+
+    private void registerAttendance(Turma turmaObj, String date, float threshold) {
+        // Try-with-resources to automatically close the PrintWriter
+        try (PrintWriter writer = new PrintWriter(new FileWriter(ATTENDANCE_TABLE_PATH, true))) 
+        {
+            // Iterate through each student ID in the userGroupCount map
+            for (String matricula : userGroupCount.keySet()) 
+            {
+                // Get the map for the specific student's attendance records
+                Map<String, Map<String, Integer>> dateMap = userGroupCount.get(matricula);
+                
+                // Get the map of group attendance counts for the specified class date
+                Map<String, Integer> groupCounts = dateMap.get(date);
+                
+                if (groupCounts != null) {
+                    // Iterate through each group and its attendance count
+                    for (Map.Entry<String, Integer> entry : groupCounts.entrySet()) 
+                    {
+                        String groupId = entry.getKey(); // Get the group ID
+                        int count = entry.getValue(); // Get the attendance count
+                        
+                        try {
+                            // Retrieve the Turma object based on the group ID
+                            Turma turma = turma_dto.getTurma(Integer.parseInt(groupId));
+                            
+                            // Check if the group matches the specified class group
+                            if (turma.group == turmaObj.group) {    
+                                int duration = turma.duracao * 60; // Assume duration is in minutes
+                                System.out.println("PRESENTE ->  " + (threshold * duration));
+                                // Check if the attendance count meets or exceeds the threshold
+                                if (count >= threshold * duration) {
+                                // Log as PRESENTE if attendance is sufficient
+                                writer.println(date + "," + turma.disciplina + " " + turma.id_turma + "," + matricula + ",PRESENTE");
+                                } else {
+                                // Log as FALTA if attendance is insufficient
+                                writer.println(date + "," + turma.disciplina + " " + turma.id_turma + "," + matricula + ",FALTA");
+                                }
+                            }
+                        } catch (Exception e) {
+                            // Log an error if there is an issue retrieving the Turma
+                            System.err.println("Error getting turma by attending group: " + e.getMessage());
+                        }
+                    }
+
+                    // Remove this date from the student's attendance map
+                    dateMap.remove(date);
+                }
             }
         } catch (IOException e) {
             // Log an error if there is an issue writing to the attendance table

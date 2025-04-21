@@ -167,14 +167,9 @@ public class TurmaJson {
     public ArrayList<Integer> getAllCurrentClassGroups(LocalDate date, LocalTime currentTime)
     {
         ArrayList<Integer> groups = new ArrayList<Integer>();
-    
-        for (Turma turma : this.turma_list) {
-            // System.out.println("##################################");
-            // System.out.println("Turma: " + turma.disciplina + " " + turma.id_turma);
 
+        for (Turma turma : this.turma_list) {
             for (SalaHorario salaHorario : turma.salas_horarios) {
-                // System.out.println("Dia da semana igual: " + (salaHorario.getDayOfWeek() == date.getDayOfWeek().getValue()));
-                // System.out.println("isClassTime: " + salaHorario.isClassTime(currentTime));
                 if (salaHorario.getDayOfWeek() == date.getDayOfWeek().getValue()) {
                     if (salaHorario.isClassTime(currentTime)) {
                         groups.add(turma.group);
@@ -184,5 +179,21 @@ public class TurmaJson {
         }
         
         return groups;
+    }
+
+    public ArrayList<Turma> getClassesJustEnded(LocalDate date, LocalTime currentTime) {
+        ArrayList<Turma> classesJustEnded = new ArrayList<Turma>();
+
+        for (Turma turma : this.turma_list) {
+            for (SalaHorario salaHorario : turma.salas_horarios) {
+                if (salaHorario.getDayOfWeek() == date.getDayOfWeek().getValue()) {
+                    if (salaHorario.getHoraFim().isBefore(currentTime)) {
+                        classesJustEnded.add(turma);
+                    }
+                }
+            }
+        }
+
+        return classesJustEnded;
     }
 }
