@@ -5,6 +5,8 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.text.ParseException;
 import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -51,12 +53,6 @@ import main.java.ckafka.GroupSelection;
  *   <li>16501 -> LABGRAD</li>
  *   <li>16502 -> L420</li>
  *   <li>16503 -> L522</li>
- *   <li>16001 -> INF1304 - 3WA - ATTENDING</li>
- *   <li>16002 -> INF1304 - 3WA - ABSENT</li>
- *   <li>16003 -> INF1748 - 3WA - ATTENDING</li>
- *   <li>16004 -> INF1748 - 3WA - ABSENT</li>
- *   <li>16005 -> INF1748 - 3WB - ATTENDING</li>
- *   <li>16006 -> INF1748 - 3WB - ABSENT</li>
  * </ul>
  * 
  * <p>Methods:</p>
@@ -122,12 +118,6 @@ public class MyGroupDefiner implements GroupSelection {
          * 16501 -> LABGRAD
          * 16502 -> L420
          * 16503 -> L522
-         * 16001 -> INF1304 - 3WA - ATTENDING
-         * 16002 -> INF1304 - 3WA - ABSENT
-         * 16003 -> INF1748 - 3WA - ATTENDING
-         * 16004 -> INF1748 - 3WA - ABSENT
-         * 16005 -> INF1748 - 3WB - ATTENDING
-         * 16006 -> INF1748 - 3WB - ABSENT
          */
         Set<Integer> setOfGroups = new HashSet<Integer>();
      
@@ -140,12 +130,6 @@ public class MyGroupDefiner implements GroupSelection {
         setOfGroups.add(16501);
         setOfGroups.add(16502);
         setOfGroups.add(16503);
-        setOfGroups.add(16001);
-        setOfGroups.add(16002);
-        setOfGroups.add(16003);
-        setOfGroups.add(16004);
-        setOfGroups.add(16005);
-        setOfGroups.add(16006);
 
         return setOfGroups;
     }
@@ -186,8 +170,9 @@ public class MyGroupDefiner implements GroupSelection {
         System.out.println("#--------------# Receiving context #--------------#");
         
         // Extract the matricula (student ID) from contextInfo
-        String matricula = String.valueOf(contextInfo.get("matricula"));
-        matricula = matricula.replace("\"", ""); // Remove any quotes
+        String tmp_matricula = String.valueOf(contextInfo.get("matricula"));
+        tmp_matricula = tmp_matricula.replace("\"", ""); // Remove any quotes
+        String [] matriculas = tmp_matricula.split(",");
 
         // Extract the location from contextInfo
         String local = String.valueOf(contextInfo.get("local"));
@@ -205,28 +190,29 @@ public class MyGroupDefiner implements GroupSelection {
         int dia_da_semana = date.getDayOfWeek().getValue();
         
         // Extract the hour from contextInfo
-        String hora = String.valueOf(contextInfo.get("hour"));
-        hora = hora.replace("\"", ""); // Remove any quotes
+        String hour = String.valueOf(contextInfo.get("hour"));
+        hour = hour.replace("\"", ""); // Remove any quotes
         
+        LocalTime currentTime = LocalTime.parse(hour, DateTimeFormatter.ofPattern("HH:mm"));
+
         // Log the extracted information for debugging
-        System.out.println("Matricula: " + matricula);
+        for (String matricula : matriculas) {
+            System.out.println("Matricula: " + matricula);
+        }
         System.out.println("Local: " + local);
         System.out.println("Data: " + date);
-        System.out.println("Hora: " + hora);
+        System.out.println("hour: " + hour);
 
-        // Retrieve the User object based on matricula
-        User user = this.user_dto.getUser(Integer.parseInt(matricula));
-        System.out.println("Nome: " + user.nome); // Log the user's name
+        Turma turma = turma_dto.getCurrentTurmaAtClassroom(date, currentTime, local);
 
-        // Loop through the classes (turmas) associated with the user
-        for (String turma : user.turmas) {
+        // System.out.println("Is turma null? " + (turma == null));
+        if (turma != null) {
             try {
-                // Get the group ID associated with the current turma
-                int groupId = this.turma_dto.getGroupIDFromTurma(turma);
+                System.out.println("Turma: " + turma.disciplina + " " + turma.id_turma);
                 
                 // Check if the group ID is valid and add it to the set
-                if (groupId != -1) {
-                    setOfGroups.add(groupId);
+                if (turma.group != -1) {
+                    setOfGroups.add(turma.group);
                 } else {
                     logger.error("Invalid group ID for turma: " + turma);
                 }
@@ -234,21 +220,10 @@ public class MyGroupDefiner implements GroupSelection {
                 // Log any exceptions that occur while retrieving the group ID
                 logger.error("Exception occurred while getting group ID for turma: " + turma, e);
             }
-
-            try {
-                // Get the groups related to the user's attendance in the current turma
-                Set<Integer> groups = this.turma_dto.getGroupsFromStudentAttendance(turma, dia_da_semana, hora, local);
-                
-                // If groups were found, add them to the set and log the information
-                if (!groups.isEmpty()) {
-                    setOfGroups.addAll(groups);
-                }
-            } catch (Exception e) {
-                // Log any exceptions that occur while retrieving attendance groups
-                logger.error("Exception occurred while getting groups from student attendance in turma: " + turma, e);
-            }
+        } else {
+            System.out.println("No class currently scheduled at this location.");
         }
-        
+
         try {
             // Get the group ID based on the user's location
             int groupId = this.getGroupIDFromLocation(local);

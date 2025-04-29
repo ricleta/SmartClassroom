@@ -5,4 +5,5 @@
     <entry key="gatewayIP">127.0.0.1</entry>
     <entry key="gatewayPort">6200</entry>
     <entry key="uuid">01111111-1111-1111-1111-111112110527</entry>
+    <entry key="placeTag">T01</entry>
 </properties>

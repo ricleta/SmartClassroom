@@ -55,7 +55,13 @@ public class SalaHorario {
      * @return True if the current time is within the class time, false otherwise.
      */
     public boolean isClassTime(LocalTime currentTime) {
-        return (currentTime.equals(this.hora_comeco) || currentTime.isAfter(this.hora_comeco)) && (currentTime.isBefore(this.hora_fim) || currentTime.equals(this.hora_fim));
+        if (hora_comeco.isBefore(hora_fim) || hora_comeco.equals(hora_fim)) {
+            // Same-day session
+            return currentTime.isAfter(hora_comeco) && currentTime.isBefore(hora_fim);
+        } else {
+            // Overnight session (spans midnight)
+            return currentTime.isAfter(hora_comeco) || currentTime.isBefore(hora_fim);
+        }
     }
     
     /**

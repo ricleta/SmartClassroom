@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.util.Set;
 import java.util.HashSet;
 import java.util.ArrayList;
+import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 
@@ -85,7 +86,7 @@ public class TurmaJson {
      */
     public Turma getTurma(int groupID) {
         for (Turma turma : this.turma_list) {
-            if (turma.group == groupID || turma.group_attending == groupID || turma.group_absent == groupID) {
+            if (turma.group == groupID) {
                 return turma;
             }
         }
@@ -119,40 +120,80 @@ public class TurmaJson {
         return -1;
     }
 
-    public ArrayList<Integer> getAllAttendanceGroups()
-    {
-        ArrayList<Integer> groups = new ArrayList<Integer>();
+    public Turma getCurrentTurmaAtClassroom(LocalDate date, LocalTime currentTime, String location) {
         for (Turma turma : this.turma_list) {
-            groups.add(turma.group_attending);
-            groups.add(turma.group_absent);
-        }
-        return groups;
-    }
-
-    /**
-     * Get the groups from student attendance
-     * @param nome_turma class name
-     * @param dayOfWeek day of the week
-     * @param hour hour in HH:mm format
-     * @param location location of the class
-     * @return set of group IDs based on student attendance
-     */
-    public Set<Integer> getGroupsFromStudentAttendance(String nome_turma, int dayOfWeek, String hour, String location) {
-        Set<Integer> groups = new HashSet<Integer>();
-        Turma turma = getTurma(nome_turma);
-        LocalTime currentTime = LocalTime.parse(hour, DateTimeFormatter.ofPattern("HH:mm")).withSecond(0).withNano(0);
-
-        for (SalaHorario salaHorario : turma.salas_horarios) {
-            if (salaHorario.getDayOfWeek() == dayOfWeek) {
-                if (salaHorario.isClassTime(currentTime)) {
-                    if (salaHorario.sala.equals(location)) {
-                        groups.add(turma.group_attending);
-                    } else {
-                        groups.add(turma.group_absent);
+            // System.out.println("##################################");
+            // System.out.println("Turma: " + turma.disciplina + " " + turma.id_turma);
+            for (SalaHorario salaHorario : turma.salas_horarios) {
+                // System.out.println("Sala: " + salaHorario.sala);
+                // System.out.println("Dia da semana salaHorario: " + salaHorario.getDayOfWeek());
+                // System.out.println("Hora de começo: " + salaHorario.getHoraComeco());
+                // System.out.println("Hora de fim: " + salaHorario.getHoraFim());
+                // System.out.println("Is class time: " + salaHorario.isClassTime(currentTime));
+                // System.out.println("(currentTime.equals(this.hora_comeco): " + (currentTime.equals(salaHorario.getHoraComeco())));
+                // System.out.println("(currentTime.isAfter(this.hora_comeco): " + (currentTime.isAfter(salaHorario.getHoraComeco())));
+                // System.out.println("&&");
+                // System.out.println("(currentTime.isBefore(this.hora_fim): " + currentTime.isBefore(salaHorario.getHoraFim()));
+                // System.out.println("(currentTime.equals(this.hora_fim): " + currentTime.equals(salaHorario.getHoraFim()));
+                
+                if (salaHorario.getDayOfWeek() == date.getDayOfWeek().getValue()) {
+                    if (salaHorario.isClassTime(currentTime)) {
+                        if (salaHorario.sala.equals(location)) {
+                            return turma;
+                        }
                     }
                 }
             }
         }
+
+        return null;
+    }
+
+    public ArrayList<String> getCurrentTurmasLocations(LocalDate date, LocalTime currentTime){
+        ArrayList<String> currentTurmasLocations = new ArrayList<String>();
+
+        for (Turma turma : this.turma_list) {
+            for (SalaHorario salaHorario : turma.salas_horarios) {
+                if (salaHorario.getDayOfWeek() == date.getDayOfWeek().getValue()) {
+                    if (salaHorario.isClassTime(currentTime)) {
+                        currentTurmasLocations.add(salaHorario.sala);
+                    }
+                }
+            }
+        }
+        return currentTurmasLocations;
+    }
+
+    public ArrayList<Integer> getAllCurrentClassGroups(LocalDate date, LocalTime currentTime)
+    {
+        ArrayList<Integer> groups = new ArrayList<Integer>();
+
+        for (Turma turma : this.turma_list) {
+            for (SalaHorario salaHorario : turma.salas_horarios) {
+                if (salaHorario.getDayOfWeek() == date.getDayOfWeek().getValue()) {
+                    if (salaHorario.isClassTime(currentTime)) {
+                        groups.add(turma.group);
+                    }
+                }
+            }
+        }
+        
         return groups;
+    }
+
+    public ArrayList<Turma> getClassesJustEnded(LocalDate date, LocalTime currentTime) {
+        ArrayList<Turma> classesJustEnded = new ArrayList<Turma>();
+
+        for (Turma turma : this.turma_list) {
+            for (SalaHorario salaHorario : turma.salas_horarios) {
+                if (salaHorario.getDayOfWeek() == date.getDayOfWeek().getValue()) {
+                    if (salaHorario.getHoraFim().isBefore(currentTime)) {
+                        classesJustEnded.add(turma);
+                    }
+                }
+            }
+        }
+
+        return classesJustEnded;
     }
 }

@@ -31,16 +31,6 @@ public class Turma {
     public int group;
 
     /**
-     * The number of students attending the class.
-     */
-    public int group_attending;
-
-    /**
-     * The number of students absent from the class.
-     */
-    public int group_absent;
-    
-    /**
      * An array of room schedules associated with the class.
      */
     public SalaHorario[] salas_horarios;
