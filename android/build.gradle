@@ -1,0 +1,58 @@
+// Apply the Android library plugin and the Kotlin Android plugin
+plugins {
+    id 'com.android.library'
+    id 'org.jetbrains.kotlin.android'
+}
+
+android { 
+    namespace 'smartclassroom_ble_plugin'
+    compileSdk 34
+
+    // Default configuration for the library
+    defaultConfig {
+        // BLE Advertising (Peripheral Mode) requires API level 21.
+        minSdkVersion 21
+        // targetSdkVersion should ideally match compileSdkVersion
+        targetSdkVersion compileSdk
+
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    // Build types configuration (release, debug)
+    buildTypes {
+        release {
+            minifyEnabled false
+            // Proguard files removed
+        }
+        debug {
+            // Debug specific configurations
+        }
+    }
+
+    // Java and Kotlin compiler options
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    kotlinOptions {
+        jvmTarget = '1.8'
+    }
+
+    // For library projects, lint options can be configured here
+    lintOptions {
+        abortOnError false
+    }
+}
+
+dependencies {
+    // Kotlin standard library
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version" // $kotlin_version is usually defined in the project-level build.gradle
+
+    implementation 'androidx.core:core-ktx:1.16.0' // Use the latest stable version
+
+    // Standard testing libraries
+    testImplementation 'junit:junit:4.13.2'
+    androidTestImplementation 'androidx.test.ext:junit:1.2.1'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.6.1'
+}
