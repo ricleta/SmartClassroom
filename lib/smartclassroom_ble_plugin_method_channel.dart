@@ -48,8 +48,10 @@ class MethodChannelSmartclassroomBlePlugin extends SmartclassroomBlePluginPlatfo
 
   Future<void> _handleMethodCall(MethodCall call) async {
     switch (call.method) {
-      case 'studentIdReceived':
+      case 'onStudentIdReceived':
         final studentId = call.arguments as String;
+        // ignore: avoid_print
+        print('####### Received student ID: $studentId');
         _studentIdStreamController.add(studentId);
         break;
       default:

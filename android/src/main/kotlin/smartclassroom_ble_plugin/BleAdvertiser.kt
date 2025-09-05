@@ -59,13 +59,15 @@ class BleAdvertiser(private val context: Context, private val channel: MethodCha
             super.onScanResult(callbackType, result)
             result?.let {
                 Log.d(TAG, "Device found: ${it.device.address}, Name: ${it.device.name}")
-                it.scanRecord?.serviceData?.forEach { (uuid, bytes) ->
+                // it.scanRecord?.serviceData?.forEach { (uuid, bytes) ->
                     // if (uuid == ParcelUuid(YOUR_APP_SERVICE_UUID)) {
-                        val receivedStudentId = String(bytes, Charsets.UTF_8)
-                        Log.d(TAG, "Received student ID: $receivedStudentId")
-                        channel.invokeMethod("onStudentIdReceived", receivedStudentId)
+                        // val serviceUuid = uuid.uuid.toString()
+                        // val receivedStudentId = String(bytes, Charsets.UTF_8)
+                        // Log.d(TAG, "Received student ID: $receivedStudentId")
+                        // Log.d(TAG, "Received student ID: $serviceUuid")
+                        channel.invokeMethod("onStudentIdReceived", it.device.name)
                     // }
-                }
+                // }
             }
         }
 
