@@ -1,24 +1,24 @@
 package smartclassroom_ble_plugin
 
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothManager
 import android.bluetooth.le.AdvertiseCallback
 import android.bluetooth.le.AdvertiseData
 import android.bluetooth.le.AdvertiseSettings
-import android.bluetooth.le.ScanCallback
-import android.bluetooth.le.ScanFilter
-import android.bluetooth.le.ScanResult
-import android.bluetooth.le.ScanSettings
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.ParcelUuid
 import android.util.Log
+import com.polidea.rxandroidble2.RxBleClient
+import com.polidea.rxandroidble2.scan.ScanSettings as RxScanSettings
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.PluginRegistry
+import io.reactivex.disposables.Disposable
 import java.util.UUID
 
 class BleAdvertiser(private val context: Context, private val channel: MethodChannel) :
@@ -26,10 +26,16 @@ class BleAdvertiser(private val context: Context, private val channel: MethodCha
 
     private val TAG = "BleAdvertiser"
     private var activity: Activity? = null
+
+    // RxAndroidBle for scanning
+    private lateinit var rxBleClient: RxBleClient
+    private var scanSubscription: Disposable? = null
+
+    // Native Android BLE for advertising
     private var bluetoothManager: BluetoothManager? = null
     private var bluetoothAdapter: BluetoothAdapter? = null
     private var bluetoothLeAdvertiser: android.bluetooth.le.BluetoothLeAdvertiser? = null
-    private val bluetoothLeScanner by lazy { bluetoothAdapter?.bluetoothLeScanner }
+
     private var isAdvertising: Boolean = false
     private var isScanning: Boolean = false
     private var currentStudentId: String? = null // Store studentId for permission callback
@@ -54,36 +60,11 @@ class BleAdvertiser(private val context: Context, private val channel: MethodCha
         }
     }
 
-    private val scanCallback = object : ScanCallback() {
-        override fun onScanResult(callbackType: Int, result: ScanResult?) {
-            super.onScanResult(callbackType, result)
-            result?.let {
-                Log.d(TAG, "Device found: ${it.device.address}, Name: ${it.device.name}")
-                // it.scanRecord?.serviceData?.forEach { (uuid, bytes) ->
-                    // if (uuid == ParcelUuid(YOUR_APP_SERVICE_UUID)) {
-                        // val serviceUuid = uuid.uuid.toString()
-                        // val receivedStudentId = String(bytes, Charsets.UTF_8)
-                        // Log.d(TAG, "Received student ID: $receivedStudentId")
-                        // Log.d(TAG, "Received student ID: $serviceUuid")
-                        channel.invokeMethod("onStudentIdReceived", it.device.name)
-                    // }
-                // }
-            }
-        }
-
-        override fun onBatchScanResults(results: MutableList<ScanResult>?) {
-            super.onBatchScanResults(results)
-            // Handle batch results if needed
-        }
-
-        override fun onScanFailed(errorCode: Int) {
-            super.onScanFailed(errorCode)
-            Log.e(TAG, "BLE scan failed: $errorCode")
-        }
-    }
-
     init {
-        // Initialize Bluetooth components
+        // Initialize RxBleClient for scanning
+        rxBleClient = RxBleClient.create(context)
+
+        // Initialize Bluetooth components for advertising
         bluetoothManager = context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
         bluetoothAdapter = bluetoothManager?.adapter
         bluetoothLeAdvertiser = bluetoothAdapter?.bluetoothLeAdvertiser
@@ -136,13 +117,13 @@ class BleAdvertiser(private val context: Context, private val channel: MethodCha
             if (grantResults.all { it == PackageManager.PERMISSION_GRANTED }) {
                 Log.d(TAG, "Permissions granted. Retrying advertising.")
                 currentStudentId?.let {
-                    startAdvertising(it, null, true) 
+                    startAdvertising(it, null, true)
                 } ?: Log.e(TAG, "No student ID to retry advertising after permissions.")
             } else {
                 Log.e(TAG, "BLE advertising permissions denied.")
                 channel.invokeMethod("onAdvertisingStateChanged", false)
             }
-            currentStudentId = null 
+            currentStudentId = null
             return true
         }
         return false
@@ -162,7 +143,7 @@ class BleAdvertiser(private val context: Context, private val channel: MethodCha
              return
         }
         if (isAdvertising && !isRetry) {
-            result?.success(null) 
+            result?.success(null)
             return
         }
 
@@ -173,30 +154,33 @@ class BleAdvertiser(private val context: Context, private val channel: MethodCha
         startBleAdvertising(studentId, result)
     }
 
+    @SuppressLint("CheckResult")
     private fun startListening(result: MethodChannel.Result?) {
         Log.d(TAG, "startListening called")
 
-        val scanSettings = ScanSettings.Builder()
-            .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
+        val scanSettings = RxScanSettings.Builder()
+            .setScanMode(RxScanSettings.SCAN_MODE_LOW_LATENCY)
             .build()
 
-        val scanFilter = ScanFilter.Builder()
-            .build()
-
-        bluetoothLeScanner?.startScan(listOf(scanFilter), scanSettings, scanCallback)
+        scanSubscription = rxBleClient.scanBleDevices(scanSettings)
+            .subscribe(
+                { scanResult ->
+                    Log.d(TAG, "Device found: ${scanResult.bleDevice.macAddress}, Name: ${scanResult.bleDevice.name}")
+                    channel.invokeMethod("onStudentIdReceived", scanResult.bleDevice.name)
+                },
+                { throwable ->
+                    Log.e(TAG, "BLE scan failed: $throwable")
+                }
+            )
         isScanning = true
         result?.success(null)
     }
 
     private fun stopListening() {
         Log.d(TAG, "stopListening called")
-        if (bluetoothLeScanner != null && isScanning) {
-            bluetoothLeScanner?.stopScan(scanCallback)
-            Log.d(TAG, "BLE scanning stopped")
-            isScanning = false
-        } else {
-            Log.d(TAG, "BLE scanning not active or scanner unavailable.")
-        }
+        scanSubscription?.dispose()
+        isScanning = false
+        Log.d(TAG, "BLE scanning stopped")
     }
 
     private fun checkPermissionsAndStartAdvertising(studentId: String, result: MethodChannel.Result?): Boolean {
