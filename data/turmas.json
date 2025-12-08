@@ -3,7 +3,7 @@
         "id_turma": "3WA",
         "disciplina": "inf1304",
         "professor": "Alexandre",
-        "duracao": 2,
+        "duracao": 1,
         "group": 3000,
         "salas_horarios": [
             {
@@ -12,7 +12,7 @@
             },
             {
                 "sala": "T01",
-                "horario": "domingo 21:17"
+                "horario": "segunda 01:00"
             }
         ]
     },

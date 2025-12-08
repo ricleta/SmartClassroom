@@ -48,7 +48,7 @@ public class MobileNode extends CKMobileNode {
     // The variable cannot be local because it is being used in a lambda function
     // Control the infinite loop until it ends
     private boolean fim = false;
-    private ArrayList<Integer> studentIDs = new ArrayList<>();
+    private Integer studentID = 123;
     private String local = "INVALIDO";
 
     /**
@@ -99,8 +99,6 @@ public class MobileNode extends CKMobileNode {
 
         // Main loop that continues until the 'fim' variable is true
         while (!fim) {
-            studentIDs = updateStudentIDs(file);
-
             // Requests the user's option
             System.out.print("(T) Change location | (R) Register class | (Z) to finish)? ");
             String linha = keyboard.nextLine().trim().toUpperCase();
@@ -117,32 +115,6 @@ public class MobileNode extends CKMobileNode {
         keyboard.close();
         System.out.println("END!");
         System.exit(0);
-    }
-
-    private ArrayList<Integer> updateStudentIDs(File ids_file) {
-        ArrayList<Integer> ids = new ArrayList<>();           
-        // Read the file and store the matriculas in the studentIDs list
-        studentIDs.clear();
-        try (BufferedReader br = new BufferedReader(new FileReader(ids_file))) {
-            String line;
-            while ((line = br.readLine()) != null) {
-                // Assuming the matricula is the first column in the CSV
-                String[] values = line.split(",");
-                if (values.length > 0) {
-                    for (String value : values) {
-                        if (!value.trim().isEmpty()) {
-                            studentIDs.add(Integer.parseInt(value.trim()));
-                        }
-                    }
-                }
-            }
-        } 
-        catch (IOException e) {
-            System.out.println("Error reading matriculas file: " + e.getMessage());
-            return null;
-        }
-
-        return studentIDs;
     }
 
     /**
@@ -239,9 +211,8 @@ public class MobileNode extends CKMobileNode {
         // String messageText = String.format("LOG %s %s %s %s", currentDate.toString(), currentHour.toString(), this.matricula, group);
         String messageText = String.format("LOG %s %s %s ", currentDate.toString(), currentHour.toString(), group);
 
-        for (Integer id : this.studentIDs) {
-            messageText = messageText.concat(String.valueOf(id).concat(","));
-        }
+        messageText = messageText.concat(String.valueOf(studentID).concat(","));
+
         System.out.println("Sending attendance check reply: " + messageText);
         this.sendMessageToPN(messageText, "StudentAttendanceCheck");
     }
@@ -315,9 +286,9 @@ public class MobileNode extends CKMobileNode {
         LocalDate currentDate = LocalDate.now(this.zoneId);
         LocalTime currentHour = LocalTime.now(this.zoneId).withSecond(0).withNano(0);
 
-        System.out.println("matriculas = " + this.studentIDs.toString());
-        contextObj.put("matricula", this.studentIDs.toString().replace("[", "").replace("]", ""));
-        // contextObj.set("matricula", objMapper.valueToTree(this.studentIDs));
+        System.out.println("matriculas = " + this.studentID.toString());
+        contextObj.put("matricula", this.studentID.toString().replace("[", "").replace("]", ""));
+        // contextObj.set("matricula", objMapper.valueToTree(this.studentID));
         contextObj.put("local", this.local);
         contextObj.put("date", currentDate.toString());
         contextObj.put("hour", currentHour.toString()); 
